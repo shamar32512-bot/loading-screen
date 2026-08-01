@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flake Loading Screen</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="./config.js"></script>
+    <script type="module" crossorigin src="./js/app.js"></script>
+    <link rel="stylesheet" crossorigin href="./css/style.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Skip song functionality
+      window.addEventListener('DOMContentLoaded', function() {
+        let currentVideoIndex = 0;
+        let videos = [];
+
+        // Wait for config to load
+        setTimeout(function() {
+          if (window.FlakeLSConfig && window.FlakeLSConfig.Background && window.FlakeLSConfig.Background.videos) {
+            videos = window.FlakeLSConfig.Background.videos;
+          }
+        }, 100);
+
+        // Function to skip to next video
+        window.skipToNextVideo = function() {
+          if (videos.length <= 1) return; // No point skipping if only one video
+
+          currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+          const nextVideo = videos[currentVideoIndex];
+
+          const videoElement = document.getElementById('BackgroundVideo');
+          if (videoElement) {
+            if (videoElement.tagName === 'VIDEO') {
+              // Handle regular video element
+              const source = videoElement.querySelector('source');
+              if (source) {
+                source.src = nextVideo;
+                videoElement.load();
+                videoElement.play();
+              }
+            } else if (videoElement.tagName === 'IFRAME') {
+              // Handle YouTube iframe
+              const isYouTube = nextVideo.includes('youtube.com') || nextVideo.includes('youtu.be');
+              if (isYouTube) {
+                let videoId = '';
+                if (nextVideo.includes('youtube.com/watch?v=')) {
+                  videoId = nextVideo.split('v=')[1].split('&')[0];
+                } else if (nextVideo.includes('youtu.be/')) {
+                  videoId = nextVideo.split('youtu.be/')[1].split('?')[0];
+                }
+                if (videoId) {
+                  videoElement.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1`;
+                }
+              }
+            }
+          }
+        };
+
+        // Add skip button to the UI after React renders
+        const checkAndAddButton = setInterval(function() {
+          const soundBox = document.querySelector('.soundBox');
+          if (soundBox && !document.querySelector('.skipIcon')) {
+            const skipButton = document.createElement('div');
+            skipButton.className = 'skipIcon';
+            skipButton.onclick = window.skipToNextVideo;
+            skipButton.innerHTML = '<i class="fa-solid fa-forward"></i>';
+            skipButton.title = window.FlakeLSConfig?.Locales?.Skip || 'Skip Song';
+
+            // Insert skip button after sound icon
+            soundBox.insertBefore(skipButton, soundBox.firstChild.nextSibling);
+            clearInterval(checkAndAddButton);
+          }
+        }, 100);
+      });
+    </script>
+  </body>
